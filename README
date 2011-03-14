@@ -1,0 +1,36 @@
+The ImgurLib
+============
+
+The ImgurLib is a API wrapper arrownd the imgur.com Authenticated API service.
+This enables you to manage imgur.com accounts without thinking too much about
+the authentication. It was developed to be used with ImgurUp as some of the 
+users wanted to use the application with their own accounts, but cince the 
+library is extended to support almost all methods available, it is released as
+a separete library.
+
+Methods
+-------
+
+The method ImgurLib provides are as follow:
+* get_auth_url() - returns a URL for authenticating the client in imgur.com
+* authorize(self, PIN) - authorizes the user with a pin from the URL you get from 
+			get_auth_url()
+* authorize_with_token() - authorizes the user with a token you already have so
+			you can skip the first two methods
+* account_info() - gives the information for the current account 
+* upload_image(filename, title, caption) - uploads an image to imgur.com
+* get_account_images() - gives a list with images in current account
+* get_image_info(hash) - Gives full information about the image (with that hash)
+* get_image_count() - Returns the total number of images in the account
+* get_albums(count, page) - Returns the albums in the account with count and page
+* create_album(title, description, privacy) - Creates album
+* get_album_count() - Gets the number of albums in the account
+* get_credits() - How many cretis are left for the account
+* genereate_links(hash) - generates links for forums and html pages
+
+Requires
+--------
+
+In order to use ImgurLib you need the following libraries installed:
+* python-json
+* python-oauth2 (see https://github.com/simplegeo/python-oauth2)
