@@ -1,22 +1,18 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # vim:noet:sw=4:ts=4:ft=vim
-
-import json
-import urlparse
-import urllib
-import base64
-import oauth2 as oauth
 
 '''
 File:  imgurlib.py
 Author:  Vladimir Kolev
+Version: 1.1a
 Description: Python library to communicate with Imgur.com
 '''
 
-__author__ = "Vladimir Kolev"
-__version__ = "1.0a"
-__doc__ = "Python library to communicate with the Auth. API of Imgur.com"
+import json
+import urlparse
+import urllib
+import oauth2 as oauth
+
 
 REQUEST_TOKEN_URL = 'https://api.imgur.com/oauth/request_token'
 AUTHORIZE_URL = 'http://api.imgur.com/oauth/authorize'
@@ -28,21 +24,18 @@ class ImgurLib:
     Python library to communicate with the Authenticated Imgur.com API.
 
     For more information and undestanding the api, please visit the
-    official website of Imgur U{http://api.imgur.com/}.
-
-    @author: Vladimir Kolev <vladimir.r.kolev@gmail.com>
-    @license: MIT License
-    @version: 1.0a
+    official website at http://api.imgur.com
     """
 
     def __init__(self, key, secret):
-        """
+        """Initialize the library
+
         Initialisation of the library with a consumer key and consumer
         secret.
-        @type key: string
-        @param key: The consumer key
-        @type secret: string
-        @param secret: The consumer secret
+
+        Attributes:
+            key -- The consumer_key for your application
+            secret -- the consumer_secret for you application
         """
         self.consumer = oauth.Consumer(key, secret)
         self.client = oauth.Client(self.consumer)
@@ -52,17 +45,18 @@ class ImgurLib:
         self.token_u = ""
 
     def authorize(self, pin):
-        """
-        Verification of the tokens with a pin
-        @type pin: string
-        @param pin: The PIN to authenticate the client
-        @rtype: bool
-        @return: B{True} if the authentication was successful
+        """Authorizes the client with a ping
+
+        Verification of the tokens with a pin so we get the final
+        token. The pin you get opening the url returned by the
+        get_auth_url() method.
+
+        Attributes:
+            pin -- The pin string from the get_auth_url()
         """
         self.token_u.set_verifier(pin)
         client = oauth.Client(self.consumer, self.token_u)
         resp, content = client.request(ACCESS_TOKEN_URL, "POST")
-        resp['status']
         result = dict(urlparse.parse_qsl(content))
         self.oauth_token = result['oauth_token']
         self.oauth_token_secret = result['oauth_token_secret']
@@ -74,31 +68,32 @@ class ImgurLib:
             return False
 
     def authorize_with_token(self, token="", token_secret=""):
-        """
-        If you have already a token for the user you can use this method
-        @type token: string
-        @param token: the oauth_token of the user
-        @type token_secret: string
-        @param token_secret: the oauth_token_secret of the user
-        @rtype: bool
-        @return: True if the authentication was successful
+        """Authorize the client with user tokens
+
+        If you have already a token for the user you can use this method to
+        authorize the client skipping the get_auth_url() method. If the
+        authentication is successful a bool True is returned.
+
+        Attributes:
+            token -- The oauth_token you have saved somewhere
+            token_secret -- The oauth_token_secret for the bove token
         """
         self.oauth_token = token
         self.oauth_token_secret = token_secret
         self.token = oauth.Token(self.oauth_token, self.oauth_token_secret)
         self.client = oauth.Client(self.consumer, self.token)
-        if(self.account_info() != None):
+        try:
+            self.account_info()
             return True
-        else:
+        except UserAuthenticationException:
             return False
 
     def get_auth_url(self):
-        """
-        Generates an url, so the user can open it and enable the access
-        to the API.
-        @rtype: dict
-        @return: a dictionary with key I{success} with a bool value and
-        a I{result} with the response
+        """Generate Authorization URL
+
+        Generates an url, so the user can open it in orther to enable
+        access to get access to the user account. A Pin code is given in
+        that page, that should be used in the authorize() method.
         """
         resp, content = self.client.request(REQUEST_TOKEN_URL, "POST")
         result = dict(urlparse.parse_qsl(content))
@@ -106,38 +101,30 @@ class ImgurLib:
         oauth_token_secret = result['oauth_token_secret']
         self.token_u = oauth.Token(oauth_token, oauth_token_secret)
         url = AUTHORIZE_URL + "?oauth_token=%s" % oauth_token
-        if resp['status'] == '200':
-            return {'success': True, 'result': url}
-        else:
-            return {'success': False, 'result': None}
+        if resp['status'] != '200':
+            return None
+        return url
 
     def account_info(self):
-        """
-        Lists all the account information.
-        @rtype: dict
-        @return: a dictionary with key I{success} with a bool value and
-        a I{result} with the response
+        """Gets the account information
+
+        Lists all the account information available through the API.
         """
         url = "http://api.imgur.com/2/account.json"
         method = 'GET'
-        resp, result = self.client.request(url, method)
-        if resp['status'] == '200':
-            return {'success': True, 'result': result}
-        else:
-            return {'success': False, 'result': None}
+        return self._submit_request(url, method)
 
     def upload_image(self, filename, title="", caption=""):
-        """
-        Uploads an image to imgur.com.
-        @type filename : string
-        @param filename: The full path or URL to imagefile to upload.
-        @type title: string
-        @param title: I{optional} the title of the image.
-        @type caption: string
-        @param caption: I{optional} the caption of the image.
-        @rtype: dict
-        @return: a dictionary with key I{success} with a bool value and
-        a I{result} with the response
+        """Uploads an image
+
+        Uploads an image to imgur.com with given title and caption. Where
+        the filename can be either a fullpath to a local image or url to
+        existing image from internet.
+
+        Attributes:
+            filename -- Filepath or URL to an image
+            title -- The title of the image to be saved
+            caption -- a caption of the image
         """
         url = "http://api.imgur.com/2/account/images.json"
         method = 'POST'
@@ -154,87 +141,67 @@ class ImgurLib:
             'title': title,
             'caption': caption,
         })
-        resp, result = self.client.request(url, method, params)
-        if resp['status'] == '200':
-            return {'success': True, 'result': result}
-        else:
-            return {'success': False, 'result': result}
+        return self._submit_request(url, method, params)
 
     def get_account_images(self):
-        """
-        Gets a list with images in current account.
-        @rtype: dict
-        @return: a dictionary with key I{success} with a bool value and
-        a I{result} with the response
+        """List all images in account
+
+        Gets a list with all images in current account and all the
+        information about every image.
         """
         url = "http://api.imgur.com/2/account/images.json"
         method = 'GET'
-        resp, result = self.client.request(url, method)
-        if resp['status'] == '200':
-            return {'success': True, 'result': result}
-        else:
-            return {'success': False, 'result': result}
+        return self._submit_request(url, method)
 
     def delete_image(self, imagehash):
-        """
-        Deletes an image from imgur.com account.
-        @type imagehash: string
-        @param imagehash: the hash of the image to be deleted.
-        @rtype: dict
-        @return: a dictionary with key I{success} with a bool value and
-        a I{result} with the response
+        """Delete an image from account
+
+        Deletes a single image from imgur.com account based on the imagehash.
+
+        Attributes:
+            imagehash -- The Image hash string
         """
         url = "http://api.imgur.com/2/account/images/%s.json" % imagehash
         method = 'DELETE'
-        resp, result = self.client.request(url, method)
-        if resp['status'] == '200':
-            return {'success': True, 'result': result}
-        else:
-            return {'success': False, 'result': result}
+        return self._submit_request(url, method)
 
     def get_image_info(self, imagehash):
-        """
-        Information about an image from account.
-        @type imagehash: string
-        @param imagehash: the hash of the image to get the information for.
-        @rtype: dict
-        @return: a dictionary with key I{success} with a bool value and
-        a I{result} with the response
+        """Information about an image
+
+        Get the full information about an image from account. This includes
+        the image title, caption and some links to use.
+
+        Attributes:
+            imagehash -- The Image hash string
         """
         url = "http://api.imgur.com/2/account/images/%s.json" % imagehash
         method = 'GET'
-        resp, result = self.client.request(url, method)
-        if resp['status'] == '200':
-            return {'success': True, 'result': result}
-        else:
-            return {'success': False, 'result': result}
+        return self._submit_request(url, method)
 
     def get_image_count(self):
-        """
+        """Counts all the images in account
+
         Returns the total number of images that are in an account. This can
-        be used when using paginations
-        @rtype: dict
-        @return: a dictionary with key I{success} with a bool value and
-        a I{result} with the response
+        be used when using paginations for getting all images from an account
+        without albums.
         """
         url = "http://api.imgur.com/2/account/images_count.json"
         method = 'GET'
-        resp, result = self.client.request(url, method)
-        if resp['status'] == '200':
-            return {'success': True, 'result': result}
-        else:
-            return {'success': False, 'result': result}
+        return self._submit_request(url, method)
 
     def get_albums(self, count=30, page=1):
-        """
-        Lists the albums in account.
-        @type count: number
-        @param count: How many albums to return.
-        @type page: number
-        @param count: What page from the results to return.
-        @rtype: dict
-        @return: a dictionary with key I{success} with a bool value and
-        a I{result} with the response
+        """Gets the albums in an account
+
+        Lists the albums in account with pagination. That allows to have
+        smaller requests. For samller albums count the parameteres cound
+        and page can be left empty. But if the user has many albums, you
+        can consider using with the the get_album_count() function to get
+        the count of all the albums the user has, so you can generate
+        the pages and the requests.
+
+        Attribues:
+            count -- How many albums should the method get
+            page -- From witch page to get the results
         """
         url = "http://api.imgur.com/2/account/albums.json"
         method = 'GET'
@@ -242,24 +209,21 @@ class ImgurLib:
             'count': count,
             'page': page,
         })
-        resp, lists = self.client.request(url, method, params)
-        if resp['status'] == '200':
-            return {'success': True, 'result': lists}
-        else:
-            return {'success': False, 'result': lists}
+        return self._submit_request(url, method, params)
 
     def create_album(self, title="", description="", privacy="public"):
-        """
-        Creates an album in imgur.com account
-        @type title: string
-        @param title: The title of the album
-        @type description: string
-        @param description: The description of the album
-        @type privacy: string
-        @param privacy: Album privacy setting can be C{public, hidden, secret}
-        @rtype: dict
-        @return: a dictionary with key I{success} with a bool value and
-        a I{result} with the response
+        """Creates an album
+
+        With this method you can create an album in an imgur account.
+        Provifing the information title, description and privacy. The
+        title and the description are freely to choose string, but the
+        pribacy attribute must be public/hidden/secret. Returns the
+        information about the new album created.
+
+        Attributes:
+            title -- The Album title
+            description -- The album description
+            privacy -- How can see your album (public, hidden, secret)
         """
         url = "http://api.imgur.com/2/account/albums.json"
         method = 'POST'
@@ -268,49 +232,38 @@ class ImgurLib:
             'description': description,
             'privacy': privacy,
         })
-        resp, result = self.client.request(url, method, params)
-        if resp['status'] == '200':
-            return {'success': True, 'result': result}
-        else:
-            return {'success': False, 'result': result}
+        return self._submit_request(url, method, params)
 
     def get_album_count(self):
-        """
-        Gets the count of the albums for account
-        @rtype: dict
-        @return: a dictionary with key I{success} with a bool value and
-        a I{result} with the response
+        """Returns the number of albums
+
+        Gets the count of the albums for account you are authenticated for.
+        The result can be used to use pagination in your request from the
+        get_albums() function
         """
         url = "http://api.imgur.com/2/account/albums_count.json"
         method = 'GET'
-        resp, count = self.client.request(url, method)
-        if resp['status'] == '200':
-            return {'success': True, 'result': count}
-        else:
-            return {'success': False, 'result': count}
+        return self._submit_request(url, method)
 
     def get_credits(self):
-        """
-        Gets the credits information for the current account
-        @rtype: dict
-        @return: a dictionary with key I{success} with a bool value and
-        a I{result} with the response
+        """Get the credits information
+
+        Every account at imgur.com using the API has so called credits
+        This is the limit of actions used through the API. With this
+        method you get the information how much credits you have left.
         """
         url = "http://api.imgur.com/2/credits.json"
         method = 'GET'
-        resp, credits = self.client.request(url, method)
-        if resp['status'] == '200':
-            return {'success': True, 'result': credits}
-        else:
-            return {'success': False, 'result': credits}
+        return self._submit_request(url, method)
 
     def generate_links(self, imagehash):
-        """
-        Generates special links for Forums/HTML etc.
-        @type imagehash: string
-        @param imagehash: The hash of the image to generate the links for.
-        @rtype: dict
-        @return: dictionary with keys I{forums} and I{html}.
+        """Generate tags for forums and html pages
+
+        Generates special links for Forums/HTML etc. and returns them
+        as a dictionary.
+
+        Attributes:
+            imagehash -- string containing the imagehash
         """
         formpath = '[url=%s][img]%s[/img][/url]'
         htmlpath = '<a href="%s" target="_blank"><img src="%s" /></a>'
@@ -321,7 +274,75 @@ class ImgurLib:
             thumb = data['images']['links']['small_square']
             link = data['images']['links']['original']
             links['forums'] = formpath % (link, thumb)
-            links['html'] =  htmlpath % (link, thumb)
+            links['html'] = htmlpath % (link, thumb)
             return links
         else:
             return None
+
+    def _submit_request(self, url, method, params=""):
+        """
+        Submits a request to the client with given
+        URL, method and parameters
+        on success returns result
+        """
+        exceptions = {
+            '400': ParameterMissingException,
+            '401': UserAuthenticationException,
+            '403': ForbiddenException,
+            '404': NotSupportedActionException,
+            '505': InternalErrorException,
+        }
+        resp, result = self.client.request(url, method, params)
+        if resp['status'] in exceptions:
+            raise exceptions[resp['status']]
+        return result
+
+
+class Error(Exception):
+    """Base class for exceptions in ImgurLib"""
+    pass
+
+
+class ParameterMissingException(Error):
+    """
+    Exception rised when parameter is missing.
+    """
+
+    def __init__(self):
+        self.msg = "Missing parameter or parameter value out of bounds"
+
+
+class UserAuthenticationException(Error):
+    """
+    Exception rised when user is not authenticated.
+    """
+
+    def __init__(self):
+        self.msg = "User is not authenticated"
+
+
+class ForbiddenException(Error):
+    """
+    Exception rised when you don't have permission tothis action.
+    """
+
+    def __init__(self):
+        self.msg = "Don't have access to this action"
+
+
+class NotSupportedActionException(Error):
+    """
+    Exception rised when the action is not supported.
+    """
+
+    def __init__(self):
+        self.msg = "Action not supported"
+
+
+class InternalErrorException(Error):
+    """
+    Exception rised when internal Error accured
+    """
+
+    def __init__(self):
+        self.msg = "Internal server Error"
