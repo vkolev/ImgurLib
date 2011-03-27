@@ -23,14 +23,14 @@ class ImgurLib:
     """
     Python library to communicate with the Authenticated Imgur.com API.
 
-    For more information and undestanding the api, please visit the
+    For more information and understanding the api, please visit the
     official website at http://api.imgur.com
     """
 
     def __init__(self, key, secret):
         """Initialize the library
 
-        Initialisation of the library with a consumer key and consumer
+        Initialization of the library with a consumer key and consumer
         secret.
 
         Attributes:
@@ -76,7 +76,7 @@ class ImgurLib:
 
         Attributes:
             token -- The oauth_token you have saved somewhere
-            token_secret -- The oauth_token_secret for the bove token
+            token_secret -- The oauth_token_secret for the above token
         """
         self.oauth_token = token
         self.oauth_token_secret = token_secret
@@ -91,7 +91,7 @@ class ImgurLib:
     def get_auth_url(self):
         """Generate Authorization URL
 
-        Generates an url, so the user can open it in orther to enable
+        Generates an url, so the user can open it in order to enable
         access to get access to the user account. A Pin code is given in
         that page, that should be used in the authorize() method.
         """
@@ -118,11 +118,11 @@ class ImgurLib:
         """Uploads an image
 
         Uploads an image to imgur.com with given title and caption. Where
-        the filename can be either a fullpath to a local image or url to
+        the filename can be either a full path to a local image or url to
         existing image from internet.
 
         Attributes:
-            filename -- Filepath or URL to an image
+            filename -- File path or URL to an image
             title -- The title of the image to be saved
             caption -- a caption of the image
         """
@@ -153,15 +153,15 @@ class ImgurLib:
         method = 'GET'
         return self._submit_request(url, method)
 
-    def delete_image(self, imagehash):
+    def delete_image(self, deletehash):
         """Delete an image from account
 
         Deletes a single image from imgur.com account based on the imagehash.
 
         Attributes:
-            imagehash -- The Image hash string
+            deletehash -- The Image hash string
         """
-        url = "http://api.imgur.com/2/account/images/%s.json" % imagehash
+        url = "http://api.imgur.com/2/account/images/%s.json" % deletehash
         method = 'DELETE'
         return self._submit_request(url, method)
 
@@ -193,13 +193,13 @@ class ImgurLib:
         """Gets the albums in an account
 
         Lists the albums in account with pagination. That allows to have
-        smaller requests. For samller albums count the parameteres cound
+        smaller requests. For smaller albums count the parameters. Count
         and page can be left empty. But if the user has many albums, you
-        can consider using with the the get_album_count() function to get
+        can consider using with the get_album_count() function to get
         the count of all the albums the user has, so you can generate
         the pages and the requests.
 
-        Attribues:
+        Attributes:
             count -- How many albums should the method get
             page -- From witch page to get the results
         """
@@ -215,9 +215,9 @@ class ImgurLib:
         """Creates an album
 
         With this method you can create an album in an imgur account.
-        Provifing the information title, description and privacy. The
+        Providing the information title, description and privacy. The
         title and the description are freely to choose string, but the
-        pribacy attribute must be public/hidden/secret. Returns the
+        privacy attribute must be public/hidden/secret. Returns the
         information about the new album created.
 
         Attributes:
@@ -234,10 +234,23 @@ class ImgurLib:
         })
         return self._submit_request(url, method, params)
 
+    def delete_album(self, albumhash):
+        """Deletes an album
+
+        With this method you can delete an album from the user account,
+        providing the album delete hash.
+
+        Attributes:
+            albumhash -- The Album hash used for identification
+        """
+        url = "http://api.imgur.com/2/account/albums/%s.json" % albumhash
+        method = 'DELETE'
+        return self._submit_request(url, method)
+
     def get_album_count(self):
         """Returns the number of albums
 
-        Gets the count of the albums for account you are authenticated for.
+        Returns the count of the albums for account you are authenticated for.
         The result can be used to use pagination in your request from the
         get_albums() function
         """
